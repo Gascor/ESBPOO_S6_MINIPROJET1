@@ -60,6 +60,8 @@ class Personne(ABC):
     nom: str
     prenom: str
     date_naissance: date
+    telephone: str
+    email: str
 
 
 @dataclass
@@ -115,8 +117,6 @@ class DossierMedical:
 class Patient(Personne):
     numero_securite_sociale: str
     adresse_postale: str
-    telephone: str
-    email: str
     ville_residence: Ville
     region_residence: Region
     centre_actuel: CentreHospitalier
@@ -161,8 +161,6 @@ class Patient(Personne):
 class PersonnelMedical(Personne, ABC):
     date_debut_fonction: date
     type_contrat: str
-    telephone: str
-    email: str
     centres_rattaches: List[CentreHospitalier] = field(default_factory=list, init=False)
     centre_disponible: Optional[CentreHospitalier] = field(default=None, init=False)
 
