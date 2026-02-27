@@ -1,0 +1,189 @@
+@startuml
+title Mini-projet POO - Niveau 3 (Transfert et reseau regional)
+skinparam classAttributeIconSize 0
+
+abstract class Personne {
+  - nom: str
+  - prenom: str
+  - date_naissance: date
+}
+
+class Ville {
+  - nom: str
+  - code_postal: str
+}
+
+class Departement {
+  - code: str
+  - villes: List<Ville>
+  + contient_ville(ville: Ville): bool
+}
+
+class Region {
+  - nom: str
+  - departements: List<Departement>
+  + contient_ville(ville: Ville): bool
+}
+
+class CentreHospitalier {
+  - nom: str
+  - ville: Ville
+  - personnels: List<PersonnelMedical>
+  + ajouter_personnel(personnel: PersonnelMedical): void
+}
+
+class Patient {
+  - numero_securite_sociale: str
+  - numero_mutuelle: str [0..1]
+  - adresse_postale: str
+  - telephone: str
+  - email: str
+  - ville_residence: Ville
+  - region_residence: Region
+  - centre_actuel: CentreHospitalier
+  - dossier_medical: DossierMedical
+  - rendez_vous: List<RendezVous>
+  + transferer_dossier(nouveau_centre: CentreHospitalier, date_transfert: datetime): void
+}
+
+abstract class PersonnelMedical {
+  - date_debut_fonction: date
+  - type_contrat: str
+  - telephone: str
+  - email: str
+  - centres_rattaches: List<CentreHospitalier>
+  - centre_disponible: CentreHospitalier [0..1]
+  + rattacher_a_centre(centre: CentreHospitalier): void
+  + definir_disponibilite(centre: CentreHospitalier): void
+  + est_disponible_dans(centre: CentreHospitalier): bool
+}
+
+class Medecin
+class Infirmier
+class Chirurgien
+
+class DossierMedical {
+  - numero_dossier: str
+  - centre_reference: CentreHospitalier
+  - actes: List<ActeMedical>
+  - transferts: List<TransfertDossier>
+  + ajouter_acte(acte: ActeMedical): void
+  + enregistrer_transfert(...): void
+  + historique(): List<ActeMedical>
+}
+
+class TransfertDossier {
+  - date_transfert: datetime
+  - ancien_centre: CentreHospitalier
+  - nouveau_centre: CentreHospitalier
+}
+
+abstract class ActeMedical {
+  - date_acte: datetime
+  - patient: Patient
+  - centre: CentreHospitalier
+  - dossier: DossierMedical
+  - personnels: List<PersonnelMedical>
+  - est_realise: bool
+  + realiser(): void
+  # verifier_habilitation(): void
+}
+
+class Consultation
+class Soin
+class InterventionChirurgicale
+
+enum TypeActeMedical {
+  CONSULTATION
+  SOIN
+  INTERVENTION_CHIRURGICALE
+}
+
+enum StatutRendezVous {
+  PLANIFIE
+  ANNULE
+  REALISE
+}
+
+class RendezVous {
+  - id_rendez_vous: str
+  - date_heure: datetime
+  - patient: Patient
+  - centre: CentreHospitalier
+  - type_acte: TypeActeMedical
+  - personnels: List<PersonnelMedical>
+  - statut: StatutRendezVous
+  + annuler_par_patient(date_demande: datetime): void
+  + annuler_par_personnel(personnel: PersonnelMedical): void
+  + modifier_date(nouvelle_date: datetime): void
+  + realiser(): ActeMedical
+}
+
+class ReseauHospitalier {
+  - centres: List<CentreHospitalier>
+  - rendez_vous: Dict<str, RendezVous>
+  + actes_disponibles(): List<TypeActeMedical>
+  + transferer_patient(...): void
+  + creer_rendez_vous(...): RendezVous
+  + annuler_par_patient(id_rdv: str, date_demande: datetime): void
+  + annuler_par_personnel(id_rdv: str, personnel: PersonnelMedical): void
+  + modifier_date_rendez_vous(id_rdv: str, nouvelle_date: datetime): void
+  + realiser_rendez_vous(id_rdv: str): ActeMedical
+  + nombre_rendez_vous_disponibles(date_heure: datetime, centre: CentreHospitalier, type_acte: TypeActeMedical): int
+}
+
+class ErreurMetierHospitaliere <<exception>>
+
+Personne <|-- Patient
+Personne <|-- PersonnelMedical
+PersonnelMedical <|-- Medecin
+PersonnelMedical <|-- Infirmier
+PersonnelMedical <|-- Chirurgien
+ActeMedical <|-- Consultation
+ActeMedical <|-- Soin
+ActeMedical <|-- InterventionChirurgicale
+
+Region "1" o-- "1..*" Departement
+Departement "1" o-- "1..*" Ville
+CentreHospitalier "1" --> "1" Ville
+Patient "1" --> "1" Ville : residence
+Patient "1" --> "1" Region : region_residence
+
+Patient "1" *-- "1" DossierMedical : possede
+DossierMedical "1" o-- "0..*" ActeMedical : historique
+DossierMedical "1" o-- "0..*" TransfertDossier : transferts
+ActeMedical "0..*" --> "1" Patient : concerne
+ActeMedical "1" --> "1..*" PersonnelMedical : realise par
+ActeMedical "1" --> "1" CentreHospitalier : realise dans
+
+Patient "1" o-- "0..*" RendezVous
+RendezVous "0..*" --> "1" CentreHospitalier
+RendezVous "0..*" --> "1..*" PersonnelMedical : affecte a
+ReseauHospitalier "1" o-- "0..*" RendezVous
+ReseauHospitalier "1" --> "1..*" CentreHospitalier
+PersonnelMedical "0..*" --> "1..*" CentreHospitalier : rattachement
+PersonnelMedical "0..*" --> "0..1" CentreHospitalier : disponibilite active
+
+RendezVous ..> ActeMedical : cree a la realisation
+RendezVous ..> TypeActeMedical
+RendezVous ..> StatutRendezVous
+ActeMedical ..> ErreurMetierHospitaliere
+RendezVous ..> ErreurMetierHospitaliere
+ReseauHospitalier ..> ErreurMetierHospitaliere
+
+note right of Patient
+Transfert de dossier:
+le patient peut changer
+de centre hospitalier.
+end note
+
+note right of ReseauHospitalier
+Regles Niveau 3:
+- RDV possible seulement dans
+  les centres de la region du patient
+- Medecin/Chirurgien: multi-centres
+  mais disponible a un seul centre a la fois
+- Capacite selon type d'acte
+end note
+
+@enduml
