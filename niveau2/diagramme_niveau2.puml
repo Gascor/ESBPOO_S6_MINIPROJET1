@@ -84,7 +84,7 @@ class GestionRendezVous {
   + annuler_par_personnel(id_rdv: str, personnel: PersonnelMedical): void
   + modifier_date_rendez_vous(id_rdv: str, nouvelle_date: datetime): void
   + realiser_rendez_vous(id_rdv: str): ActeMedical
-  + nombre_rendez_vous_disponibles(date_heure: datetime): int
+  + nombre_rendez_vous_disponibles(date_heure: datetime, type_acte: TypeActeMedical): int
 }
 
 class ErreurMetierHospitaliere <<exception>>
@@ -118,10 +118,15 @@ GestionRendezVous ..> ErreurMetierHospitaliere
 note right of GestionRendezVous
 Regles planning:
 - Un patient ne peut pas avoir
-  2 rendez-vous sur le meme creneau
+  2 types de rendez-vous differents
+  sur le meme creneau
 - Un personnel ne peut pas avoir
   2 rendez-vous sur le meme creneau
-- Capacite creneau = nb personnels disponibles
+- Capacite depend du type d'acte:
+  consultation = nb medecins disponibles
+  soin = nb infirmiers disponibles
+  intervention = min(nb chirurgiens,
+  nb infirmiers) disponibles
 end note
 
 note right of RendezVous

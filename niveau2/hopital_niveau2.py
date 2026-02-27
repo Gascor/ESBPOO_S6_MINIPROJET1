@@ -250,7 +250,12 @@ class GestionRendezVous:
 
         self._verifier_personnels_connus(personnels)
         rdv = RendezVous(id_rdv, date_heure, patient, type_acte, personnels)
-        self._verifier_conflits(rdv.patient, rdv.personnels, rdv.date_heure)
+        self._verifier_conflits(
+            patient=rdv.patient,
+            type_acte=rdv.type_acte,
+            personnels=rdv.personnels,
+            date_heure=rdv.date_heure,
+        )
 
         self.rendez_vous[id_rdv] = rdv
         patient.ajouter_rendez_vous(rdv)
@@ -267,6 +272,7 @@ class GestionRendezVous:
         rdv._verifier_planifie()
         self._verifier_conflits(
             patient=rdv.patient,
+            type_acte=rdv.type_acte,
             personnels=rdv.personnels,
             date_heure=nouvelle_date,
             exclure_id=id_rdv,
@@ -276,21 +282,40 @@ class GestionRendezVous:
     def realiser_rendez_vous(self, id_rdv: str) -> ActeMedical:
         return self._obtenir_rendez_vous(id_rdv).realiser()
 
-    def nombre_rendez_vous_disponibles(self, date_heure: datetime) -> int:
-        return self.nombre_personnels_disponibles(date_heure)
+    def nombre_rendez_vous_disponibles(
+        self, date_heure: datetime, type_acte: TypeActeMedical
+    ) -> int:
+        disponibles = self.personnels_disponibles_par_type(date_heure)
+        if type_acte == TypeActeMedical.CONSULTATION:
+            return disponibles["medecin"]
+        if type_acte == TypeActeMedical.SOIN:
+            return disponibles["infirmier"]
+        return min(disponibles["chirurgien"], disponibles["infirmier"])
 
-    def nombre_personnels_disponibles(self, date_heure: datetime) -> int:
+    def personnels_disponibles_par_type(self, date_heure: datetime) -> Dict[str, int]:
         personnels_occupes_ids = {
             id(personnel)
             for rdv in self.rendez_vous.values()
             if rdv.statut == StatutRendezVous.PLANIFIE and rdv.date_heure == date_heure
             for personnel in rdv.personnels
         }
-        return sum(
-            1
+        personnels_disponibles = [
+            personnel
             for personnel in self.personnels_hopital
             if id(personnel) not in personnels_occupes_ids
-        )
+        ]
+
+        return {
+            "medecin": sum(
+                1 for personnel in personnels_disponibles if isinstance(personnel, Medecin)
+            ),
+            "infirmier": sum(
+                1 for personnel in personnels_disponibles if isinstance(personnel, Infirmier)
+            ),
+            "chirurgien": sum(
+                1 for personnel in personnels_disponibles if isinstance(personnel, Chirurgien)
+            ),
+        }
 
     def _obtenir_rendez_vous(self, id_rdv: str) -> RendezVous:
         if id_rdv not in self.rendez_vous:
@@ -307,6 +332,7 @@ class GestionRendezVous:
     def _verifier_conflits(
         self,
         patient: Patient,
+        type_acte: TypeActeMedical,
         personnels: List[PersonnelMedical],
         date_heure: datetime,
         exclure_id: Optional[str] = None,
@@ -317,9 +343,9 @@ class GestionRendezVous:
             if rdv.statut != StatutRendezVous.PLANIFIE or rdv.date_heure != date_heure:
                 continue
 
-            if rdv.patient == patient:
+            if rdv.patient == patient and rdv.type_acte != type_acte:
                 raise ErreurMetierHospitaliere(
-                    "Conflit planning: le patient a deja un rendez-vous sur ce creneau."
+                    "Conflit planning: le patient a deja un rendez-vous d'un autre type sur ce creneau."
                 )
 
             if any(personnel in rdv.personnels for personnel in personnels):
@@ -427,7 +453,9 @@ def _demo() -> None:
     print("Actes disponibles:", [acte.value for acte in gestion.actes_disponibles()])
     print(
         "Capacite restante creneau consultation:",
-        gestion.nombre_rendez_vous_disponibles(creneau_consultation),
+        gestion.nombre_rendez_vous_disponibles(
+            creneau_consultation, TypeActeMedical.CONSULTATION
+        ),
     )
     print("Nombre d'actes dans le dossier:", len(patient.dossier_medical.historique()))
 
