@@ -1,0 +1,142 @@
+@startuml
+title Mini-projet POO - Niveau 2 (Rendez-vous)
+skinparam classAttributeIconSize 0
+
+abstract class Personne {
+  - nom: str
+  - prenom: str
+  - date_naissance: date
+}
+
+class Patient {
+  - numero_securite_sociale: str
+  - numero_mutuelle: str [0..1]
+  - adresse_postale: str
+  - telephone: str
+  - email: str
+  - dossier_medical: DossierMedical
+  - rendez_vous: List<RendezVous>
+}
+
+abstract class PersonnelMedical {
+  - date_debut_fonction: date
+  - type_contrat: str
+  - telephone: str
+  - email: str
+}
+
+class Medecin
+class Infirmier
+class Chirurgien
+
+class DossierMedical {
+  - numero_dossier: str
+  - actes: List<ActeMedical>
+  + ajouter_acte(acte: ActeMedical): void
+  + historique(): List<ActeMedical>
+}
+
+abstract class ActeMedical {
+  - date_acte: datetime
+  - patient: Patient
+  - dossier: DossierMedical
+  - personnels: List<PersonnelMedical>
+  - est_realise: bool
+  + realiser(): void
+  # verifier_habilitation(): void
+}
+
+class Consultation
+class Soin
+class InterventionChirurgicale
+
+enum TypeActeMedical {
+  CONSULTATION
+  SOIN
+  INTERVENTION_CHIRURGICALE
+}
+
+enum StatutRendezVous {
+  PLANIFIE
+  ANNULE
+  REALISE
+}
+
+class RendezVous {
+  - id_rendez_vous: str
+  - date_heure: datetime
+  - patient: Patient
+  - type_acte: TypeActeMedical
+  - personnels: List<PersonnelMedical>
+  - statut: StatutRendezVous
+  + annuler_par_patient(date_demande: datetime): void
+  + annuler_par_personnel(personnel: PersonnelMedical): void
+  + modifier_date(nouvelle_date: datetime): void
+  + realiser(): ActeMedical
+}
+
+class GestionRendezVous {
+  - personnels_hopital: List<PersonnelMedical>
+  - rendez_vous: Dict<str, RendezVous>
+  + actes_disponibles(): List<TypeActeMedical>
+  + creer_rendez_vous(...): RendezVous
+  + annuler_par_patient(id_rdv: str, date_demande: datetime): void
+  + annuler_par_personnel(id_rdv: str, personnel: PersonnelMedical): void
+  + modifier_date_rendez_vous(id_rdv: str, nouvelle_date: datetime): void
+  + realiser_rendez_vous(id_rdv: str): ActeMedical
+  + nombre_rendez_vous_disponibles(date_heure: datetime): int
+}
+
+class ErreurMetierHospitaliere <<exception>>
+
+Personne <|-- Patient
+Personne <|-- PersonnelMedical
+PersonnelMedical <|-- Medecin
+PersonnelMedical <|-- Infirmier
+PersonnelMedical <|-- Chirurgien
+ActeMedical <|-- Consultation
+ActeMedical <|-- Soin
+ActeMedical <|-- InterventionChirurgicale
+
+Patient "1" *-- "1" DossierMedical : possede
+DossierMedical "1" o-- "0..*" ActeMedical : historique
+ActeMedical "0..*" --> "1" Patient : concerne
+ActeMedical "1" --> "1..*" PersonnelMedical : realise par
+
+Patient "1" o-- "0..*" RendezVous
+RendezVous "0..*" --> "1..*" PersonnelMedical : affecte a
+RendezVous "0..*" --> "1" Patient
+GestionRendezVous "1" o-- "0..*" RendezVous
+GestionRendezVous "1" --> "1..*" PersonnelMedical
+RendezVous ..> ActeMedical : cree a la realisation
+RendezVous ..> TypeActeMedical
+RendezVous ..> StatutRendezVous
+ActeMedical ..> ErreurMetierHospitaliere
+RendezVous ..> ErreurMetierHospitaliere
+GestionRendezVous ..> ErreurMetierHospitaliere
+
+note right of GestionRendezVous
+Regles planning:
+- Un patient ne peut pas avoir
+  2 rendez-vous sur le meme creneau
+- Un personnel ne peut pas avoir
+  2 rendez-vous sur le meme creneau
+- Capacite creneau = nb personnels disponibles
+end note
+
+note right of RendezVous
+Regles metier:
+- Annulation patient autorisee
+  uniquement >= 24h avant
+- Annulation personnel autorisee
+- Intervention: au moins
+  1 chirurgien + 1 infirmier
+end note
+
+note bottom of ActeMedical
+Lorsqu'un rendez-vous est realise,
+l'acte est ajoute automatiquement
+au dossier medical du patient.
+end note
+
+@enduml
