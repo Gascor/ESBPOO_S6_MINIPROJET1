@@ -1,0 +1,98 @@
+@startuml
+title Mini-projet POO - Niveau 1 (Systeme de gestion hospitaliere)
+skinparam classAttributeIconSize 0
+
+abstract class Personne {
+  - nom: str
+  - prenom: str
+  - date_naissance: date
+}
+
+class Patient {
+  - numero_securite_sociale: str
+  - numero_mutuelle: str [0..1]
+  - adresse_postale: str
+  - telephone: str
+  - email: str
+  - dossier_medical: DossierMedical
+}
+
+abstract class PersonnelMedical {
+  - date_debut_fonction: date
+  - type_contrat: str
+  - telephone: str
+  - email: str
+}
+
+class Medecin
+class Infirmier
+class Chirurgien
+
+class DossierMedical {
+  - numero_dossier: str
+  - actes: List<ActeMedical>
+  + ajouter_acte(acte: ActeMedical): void
+  + historique(): List<ActeMedical>
+}
+
+abstract class ActeMedical {
+  - date_acte: date
+  - patient: Patient
+  - dossier: DossierMedical
+  - personnels: List<PersonnelMedical>
+  - est_realise: bool
+  + realiser(): void
+  # verifier_habilitation(): void
+}
+
+class Consultation {
+  # verifier_habilitation(): void
+}
+
+class Soin {
+  # verifier_habilitation(): void
+}
+
+class InterventionChirurgicale {
+  # verifier_habilitation(): void
+}
+
+class ErreurMetierHospitaliere <<exception>>
+
+Personne <|-- Patient
+Personne <|-- PersonnelMedical
+PersonnelMedical <|-- Medecin
+PersonnelMedical <|-- Infirmier
+PersonnelMedical <|-- Chirurgien
+ActeMedical <|-- Consultation
+ActeMedical <|-- Soin
+ActeMedical <|-- InterventionChirurgicale
+
+Patient "1" *-- "1" DossierMedical : possede
+DossierMedical "1" o-- "0..*" ActeMedical : historique
+ActeMedical "1" --> "1" Patient : concerne
+ActeMedical "1" --> "1..*" PersonnelMedical : realise par
+ActeMedical ..> ErreurMetierHospitaliere : leve
+
+note right of Consultation
+Regle metier:
+1 Medecin obligatoire
+end note
+
+note right of Soin
+Regle metier:
+1 Infirmier obligatoire
+end note
+
+note right of InterventionChirurgicale
+Regle metier:
+au moins 1 Chirurgien
+end note
+
+note bottom of ActeMedical
+Lorsqu'un acte est realise,
+il est ajoute automatiquement
+au dossier medical du patient.
+end note
+
+@enduml
