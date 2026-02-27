@@ -6,6 +6,8 @@ abstract class Personne {
   - nom: str
   - prenom: str
   - date_naissance: date
+  - telephone : str
+  - email : str
 }
 
 class Ville {
@@ -36,8 +38,6 @@ class Patient {
   - numero_securite_sociale: str
   - numero_mutuelle: str [0..1]
   - adresse_postale: str
-  - telephone: str
-  - email: str
   - ville_residence: Ville
   - region_residence: Region
   - centre_actuel: CentreHospitalier
@@ -49,8 +49,6 @@ class Patient {
 abstract class PersonnelMedical {
   - date_debut_fonction: date
   - type_contrat: str
-  - telephone: str
-  - email: str
   - centres_rattaches: List<CentreHospitalier>
   - centre_disponible: CentreHospitalier [0..1]
   + rattacher_a_centre(centre: CentreHospitalier): void
